@@ -1,114 +1,123 @@
-let title = document.querySelector(".title");
-let turn = 'X';
-let square = [];
+let currentPlayer = 'X'; // Human player
+let computerPlayer = 'O';
+let board = ['', '', '', '', '', '', '', '', ''];
 
-function end(num1, num2, num3) {
-    title.innerHTML = `${square[num1]} Is Winner `;
-    document.getElementById("item" + num1).style.background = "#fff";
-    document.getElementById("item" + num2).style.background = "#fff";
-    document.getElementById("item" + num3).style.background = "#fff";
-    setInterval(function () { title.innerHTML += '.' }, 1000);
-    setTimeout(function () { location.reload() }, 4000);
-}
+// Function to check for a winner
+function checkWinner(board) {
+    const winningCombinations = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+        [0, 4, 8], [2, 4, 6]              // Diagonals
+    ];
 
-function winner() {
-    for (let i = 1; i < 10; i++) {
-        square[i] = document.getElementById('item' + i).innerHTML;
-    }
-    if (square[1] == square[2] && square[2] == square[3] && square[1] != '') {
-        end(1, 2, 3);
-    } else if (square[4] == square[5] && square[5] == square[6] && square[4] != '') {
-        end(4, 5, 6);
-    } else if (square[7] == square[8] && square[8] == square[9] && square[7] != '') {
-        end(7, 8, 9);
-    } else if (square[1] == square[5] && square[5] == square[9] && square[5] != '') {
-        end(1, 5, 9);
-    } else if (square[3] == square[5] && square[5] == square[7] && square[5] != '') {
-        end(3, 5, 7);
-    } else if (square[1] == square[4] && square[4] == square[7] && square[1] != '') {
-        end(1, 4, 7);
-    } else if (square[2] == square[5] && square[5] == square[8] && square[2] != '') {
-        end(2, 5, 8);
-    } else if (square[3] == square[6] && square[6] == square[9] && square[6] != '') {
-        end(3, 6, 9);
-    } else if (square[1] != '' && square[2] != '' && square[3] != '' && square[4] != '' && square[5] != '' && square[6] != '' && square[7] != '' && square[8] != '' && square[9] != '') {
-        title.innerHTML = `No One Winner `;
-        setInterval(function () { title.innerHTML += '.' }, 1000);
-        setTimeout(function () { location.reload() }, 3000);
-    }
-}
-
-function minimax(depth, maximizingPlayer) {
-    let player = maximizingPlayer ? 'O' : 'X';
-    let opponent = maximizingPlayer ? 'X' : 'O';
-    let result = winner();
-    
-    if (result !== null) {
-        if (result === 'O') {
-            return 10 - depth;
-        } else if (result === 'X') {
-            return depth - 10;
-        } else {
-            return 0;
+    for (let combo of winningCombinations) {
+        const [a, b, c] = combo;
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+            return board[a];
         }
     }
 
-    let scores = [];
-    let moves = [];
-
-    for (let i = 1; i < 10; i++) {
-        if (square[i] === '') {
-            square[i] = player;
-            scores.push(minimax(depth + 1, !maximizingPlayer));
-            moves.push(i);
-            square[i] = '';
-        }
+    if (board.every(cell => cell !== '')) {
+        return 'tie';
     }
 
-    if (maximizingPlayer) {
-        let maxScoreIndex = scores.indexOf(Math.max(...scores));
-        return scores[maxScoreIndex];
-    } else {
-        let minScoreIndex = scores.indexOf(Math.min(...scores));
-        return scores[minScoreIndex];
+    return null;
+}
+
+// Function to make a move for the player
+function playerMove(index) {
+    if (board[index] === '' && !checkWinner(board)) {
+        board[index] = currentPlayer;
+        renderBoard();
+        if (!checkWinner(board)) {
+            setTimeout(computerMove, 500);
+        }
     }
 }
 
-function bestMove() {
+// Function to make a move for the computer using Minimax algorithm
+function computerMove() {
     let bestScore = -Infinity;
     let move;
-    for (let i = 1; i < 10; i++) {
-        if (square[i] === '') {
-            square[i] = 'O';
-            let score = minimax(0, false);
-            square[i] = '';
+
+    for (let i = 0; i < board.length; i++) {
+        if (board[i] === '') {
+            board[i] = computerPlayer;
+            let score = minimax(board, 0, false);
+            board[i] = '';
             if (score > bestScore) {
                 bestScore = score;
                 move = i;
             }
         }
     }
-    return move;
+
+    board[move] = computerPlayer;
+    renderBoard();
 }
 
+// Minimax algorithm
+function minimax(board, depth, isMaximizing) {
+    let result = checkWinner(board);
 
-function game(id) {
-    let element = document.getElementById(id);
-    if (turn == 'X' && element.innerHTML == '') {
-        element.innerHTML = 'X';
-        turn = 'O';
-        title.innerHTML = "O";
-    }
-    winner();
-    if (turn == 'O') {
-        let index = bestMove();
-        if (index) {
-            let element = document.getElementById('item' + index);
-            element.innerHTML = 'O';
-            square[index] = 'O';
-            turn = 'X';
-            title.innerHTML = "X";
-            winner();
+    if (result !== null) {
+        if (result === 'X') {
+            return -10 + depth;
+        } else if (result === 'O') {
+            return 10 - depth;
+        } else {
+            return 0;
         }
+    }
+
+    if (isMaximizing) {
+        let bestScore = -Infinity;
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] === '') {
+                board[i] = computerPlayer;
+                let score = minimax(board, depth + 1, false);
+                board[i] = '';
+                bestScore = Math.max(score, bestScore);
+            }
+        }
+        return bestScore;
+    } else {
+        let bestScore = Infinity;
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] === '') {
+                board[i] = currentPlayer;
+                let score = minimax(board, depth + 1, true);
+                board[i] = '';
+                bestScore = Math.min(score, bestScore);
+            }
+        }
+        return bestScore;
+    }
+}
+function end(num1, num2, num3) {
+    title.innerHTML = `${square[num1]} Is Winner `;
+    document.getElementById("item" + num1).style.background = "#fff";
+    document.getElementById("item" + num2).style.background = "#fff";
+    document.getElementById("item" + num3).style.background = "#fff";
+    setInterval(function () { title.innerHTML += '.' }, 1000);
+    setTimeout(function () { location.reload() }, 3000);
+}
+// Function to render the game board
+function renderBoard() {
+    const boardItems = document.querySelectorAll('.square');
+    boardItems.forEach((item, index) => {
+        item.textContent = board[index];
+    });
+
+    let winner = checkWinner(board);
+    if (winner) {
+        if (winner === 'tie') {
+            alert("It's a Tie!");
+        } else {
+            alert(`${winner} is the Winner!`);
+        }
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
     }
 }
